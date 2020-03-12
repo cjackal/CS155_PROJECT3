@@ -4,6 +4,7 @@ Created on Wed Mar 11 15:08:52 2020
 
 @author: HyeongChan Jo, Juhyun Kim
 """
+import re
 
 ## class 'sonnet' for saving data about a single sonnet
 class Sonnet:
@@ -46,26 +47,42 @@ class Sonnet:
             s += '\n'
         return s
     
-    def SetDict(self, df):              ### Set the syllable dictionary.
+    def SetDict(self, df, removeApo=True):  ### Set the syllable dictionary.
         self.dict = df                  ### Temporary format: rows indexed by the words, with two columns of possible syllables
-        self.unmatched = []
         idxmap = {}
         for i, s in enumerate(self.dict.index.to_numpy()):
             idxmap[s] = i
         self.index_map = idxmap         ### {key:value}={word:idx}
         word_to_idx = []
-        for line in self.stringform:
-            word_to_idx_line = []
-            for word in line:
-                idx = self.index_map.get(word)
-                if idx:
-                    word_to_idx_line.append(idx)
-                else:
-                    self.unmatched.append(word)
-            word_to_idx.append(word_to_idx_line)
+        if removeApo:
+            for i, line in enumerate(self.stringform):
+                word_to_idx_line = []
+                for j, word in enumerate(line):
+                    idx = self.index_map.get(word)
+                    if isinstance(idx, int):
+                        word_to_idx_line.append(idx)
+                    else:
+                        self.stringform[i][j] = re.sub(r"'$", "", self.stringform[i][j])
+                        self.stringform[i][j] = re.sub(r"^'", "", self.stringform[i][j])
+                        word_to_idx_line.append(self.index_map[self.stringform[i][j]])
+                word_to_idx.append(word_to_idx_line)
+        else:
+            unmatched = []
+            for line in self.stringform:
+                word_to_idx_line = []
+                for word in line:
+                    idx = self.index_map.get(word)
+                    if isinstance(idx, int):
+                        word_to_idx_line.append(idx)
+                    else:
+                        unmatched.append(word)
+                word_to_idx.append(word_to_idx_line)
+                
+                if len(unmatched)!=0:
+                    print(self.unmatched)
+                    raise KeyError
+                    
         self.word_to_index = word_to_idx    ### sonnet with words replaced with the corresponding idx
-        if len(self.unmatched)!=0:
-            print(self.unmatched)
 
     def IsRegular(self):
         """
@@ -134,9 +151,10 @@ class Sonnets(Sonnet):
     def __init__(self, sonnetList, predefinedDict = []):
         self.sonnetList = sonnetList
         self.is_ending = [eachSonnet.is_ending for eachSonnet in sonnetList]
+        print(sonnetList)
         self.dict = sonnetList[0].dict
         
-        self.wordList = set()
+        self.WordList = set()
         for sonnet in self.sonnetList:
             self.WordList |= set(sonnet.WordList)
         
@@ -149,10 +167,13 @@ class Sonnets(Sonnet):
         elif len(predefinedDict)!=0:
             self.SetDict(predefinedDict)
             for sonnet in self.sonnetList:
-                sonnet.SetDic(predefinedDict)
-        #else:
-#            self.SetDict_new()
-#            
-#    def SetDict_new(self):
-#        # define new dictionary, based on nltk
-#        
+                sonnet.SetDict(predefinedDict)
+        else:
+            self.SetDict_new()
+            
+    def SetDict_new(self):
+        # define new dictionary, based on nltk
+        from Dictionary import Dictionary
+        self.dict = Dictionary.sylAndStr_nltk(self.WordList)
+        
+        
