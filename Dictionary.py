@@ -13,7 +13,7 @@ Functions for defining dictionaries
 import pandas as pd
 import nltk
 from nltk.corpus import cmudict
-nltk.download('cmudict')
+# nltk.download('cmudict')
 
 def syl_predef(filePath = './data/Syllable_dictionary.txt'):
     syl_dict = pd.read_csv(filePath, sep=' ', names=["word", "length1", "length2"])

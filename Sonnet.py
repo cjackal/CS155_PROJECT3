@@ -5,6 +5,8 @@ Created on Wed Mar 11 15:08:52 2020
 @author: HyeongChan Jo, Juhyun Kim
 """
 
+import re
+
 ## Master class 'sonnet'
 
 class Sonnet:
@@ -23,18 +25,37 @@ class Sonnet:
             s += '\n'
         return s
     
-    def SetDict(self, df):              ### Set the syllable dictionary.
+    def SetDict(self, df, removeApo=True):              ### Set the syllable dictionary.
         self.dict = df                  ### Temporary format: rows indexed by the words, with two columns of possible syllables
         idxmap = {}
         for i, s in enumerate(self.dict.index.to_numpy()):
             idxmap[s] = i
         self.index_map = idxmap         ### {key:value}={word:idx}
         word_to_idx = []
-        for line in self.stringform:
+        unmatched = []
+        for i, line in enumerate(self.stringform):
             word_to_idx_line = []
-            for word in line:
-                word_to_idx_line.append(self.index_map[word])
+            for j, word in enumerate(line):
+                idx = self.index_map.get(word)
+                if isinstance(idx, int):
+                    word_to_idx_line.append(idx)
+                else:
+                    if removeApo:
+                        if isinstance(self.index_map.get(re.sub(r"'$", "", word)), int):
+                            word_to_idx_line.append(self.index_map.get(re.sub(r"'$", "", word)))
+                        elif isinstance(self.index_map.get(re.sub(r"^'", "", word)), int):
+                            word_to_idx_line.append(self.index_map.get(re.sub(r"'$", "", word)))
+                        elif isinstance(self.index_map.get(re.sub(r"'$", "", re.sub(r"^'", "", word))), int):
+                            word_to_idx_line.append(self.index_map.get(re.sub(r"'$", "", re.sub(r"^'", "", word))))
+                        else:
+                            unmatched.append(word)
+                    else:
+                        unmatched.append(word)
             word_to_idx.append(word_to_idx_line)
+        if len(unmatched)!=0:
+            print(self.unmatched)
+            raise KeyError
+
         self.word_to_index = word_to_idx    ### sonnet with words replaced with the corresponding idx
 
     def IsRegular(self):

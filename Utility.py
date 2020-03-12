@@ -73,6 +73,10 @@ def SonnetLoader(path):
     for sonnet in sonnets:
         for i in range(len(sonnet)):
             sonnet[i] = re.sub(r"[^-'\w\s]", '', sonnet[i]).split()
+            # line = []
+            # for word in sonnet[i]:
+            #     line.append(re.sub(r"s'$", "s", word))
+            # sonnet[i] = line
 
     #print(sonnets)
     return [Sonnet(sonnet) for sonnet in sonnets]

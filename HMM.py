@@ -482,6 +482,17 @@ def unsupervised_HMM(X, n_states, N_iters):
     L = n_states
     D = len(observations)
 
+    obs_idx = {}
+    for i, obs in enumerate(list(observations)):
+        obs_idx[obs] = i
+ 
+    X_reidxd = []
+    for x in X:
+        x_reidxd = []
+        for obs in x:
+            x_reidxd.append(obs_idx[obs])
+        X_reidxd.append(x_reidxd)
+
     # Randomly initialize and normalize matrix A.
     A = [[random.random() for i in range(L)] for j in range(L)]
 
@@ -500,6 +511,6 @@ def unsupervised_HMM(X, n_states, N_iters):
 
     # Train an HMM with unlabeled data.
     HMM = HiddenMarkovModel(A, O)
-    HMM.unsupervised_learning(X, N_iters)
+    HMM.unsupervised_learning(X_reidxd, N_iters)
 
-    return HMM
+    return HMM, obs_idx
