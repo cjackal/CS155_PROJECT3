@@ -44,8 +44,8 @@ class Dictionary:
         return syl_dict
         
     def sylAndStr_nltk(wordList):
+        # returns dataFrame object that contains number of syllables and stress information from the given wordList
         pro = cmudict.dict()
-        wordList = ['trimmed', 'fire']
         stressList = []
         
         for word in wordList:
