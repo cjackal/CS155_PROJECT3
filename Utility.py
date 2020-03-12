@@ -41,7 +41,7 @@ class Utility:
     
         return obs, obs_map
     
-    def SonnetLoader(path):
+    def SonnetLoader(path, syl_dict=[]):
         """
         Load sonnets from txt, return a list consisting of one sonnet per element.
         Each sonnet consists of a list of lines in the sonnet, which is again a list of words in the line.
@@ -78,4 +78,7 @@ class Utility:
                 sonnet[i] = re.sub(r"[^-'\w\s]", '', sonnet[i]).split()
     
         #print(sonnets)
-        return [Sonnet(sonnet) for sonnet in sonnets]
+        if len(syl_dict)==0:
+            return [Sonnet(sonnet) for sonnet in sonnets]
+        else:
+            return [Sonnet(sonnet, syl_dict) for sonnet in sonnets]

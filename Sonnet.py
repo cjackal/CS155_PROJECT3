@@ -5,15 +5,38 @@ Created on Wed Mar 11 15:08:52 2020
 @author: HyeongChan Jo, Juhyun Kim
 """
 
-## Master class 'sonnet'
-
+## class 'sonnet' for saving data about a single sonnet
 class Sonnet:
-    def __init__(self, sonnet):
+#    Parameters:
+#            stringform: list of strings. sonnet as a list of words
+#            
+#            is_ending:  list of logical vluases. Whether the sonnet is ending. False by default, and True only at the end of each line
+#            
+#            dict:       predefined dictionary for syllable
+#            
+#            index_map:  map for converting word to index. self.index_map[word] corresponds to index
+#            
+#            word_to_index:    sonnet with words replaced with the corresponding idx
+#
+#            WordList:   list of unique words in the sonnet
+#   
+#            RhymePair:  Pair of words that rhymes in the sonnet
+    
+    def __init__(self, sonnet, predefinedDict = []):
         self.stringform = sonnet        ### sonnet as a list of words itself
+        
         is_ending = [[False for _ in range(len(line))] for line in sonnet]
         for line in is_ending:
             line[-1] = True
         self.is_ending = is_ending      ### Encoding the location of the end of each lines (having the same shape as stringform)
+        
+        if len(predefinedDict) != 0:
+            self.SetDict(predefinedDict)
+        else:
+            self.dict = []
+            
+        self.WordList = self.returnWordList()
+        self.RhymePair = self.returnRhymePair()
 
     def __repr__(self):
         s = ''
@@ -25,6 +48,7 @@ class Sonnet:
     
     def SetDict(self, df):              ### Set the syllable dictionary.
         self.dict = df                  ### Temporary format: rows indexed by the words, with two columns of possible syllables
+        self.unmatched = []
         idxmap = {}
         for i, s in enumerate(self.dict.index.to_numpy()):
             idxmap[s] = i
@@ -33,9 +57,15 @@ class Sonnet:
         for line in self.stringform:
             word_to_idx_line = []
             for word in line:
-                word_to_idx_line.append(self.index_map[word])
+                idx = self.index_map.get(word)
+                if idx:
+                    word_to_idx_line.append(idx)
+                else:
+                    self.unmatched.append(word)
             word_to_idx.append(word_to_idx_line)
         self.word_to_index = word_to_idx    ### sonnet with words replaced with the corresponding idx
+        if len(self.unmatched)!=0:
+            print(self.unmatched)
 
     def IsRegular(self):
         """
@@ -82,16 +112,47 @@ class Sonnet:
         except AttributeError:
             print("Set the syllable dictionary to use.")
 
-    def WordList(self):
+    def returnWordList(self):
         s = set()
         for line in self.stringform:
             s |= set(line)
         return s
     
-    def RhymePair(self):
+    def returnRhymePair(self):
         pair = []
         paring = [[0,2],[1,3],[4,6],[5,7],[8,10],[9,11],[12,13]]
         for couple in paring:
             i, j = couple
-            pair.append({self.stringform[i][-1], self.stringform[j][-1]})
+            if j<len(self.stringform):
+                pair.append({self.stringform[i][-1], self.stringform[j][-1]})
         return pair
+
+
+
+## class 'sonnets' for saving data about multiple sonnets
+class Sonnets(Sonnet):
+    def __init__(self, sonnetList, predefinedDict = []):
+        self.sonnetList = sonnetList
+        self.is_ending = [eachSonnet.is_ending for eachSonnet in sonnetList]
+        self.dict = sonnetList[0].dict
+        
+        self.wordList = set()
+        for sonnet in self.sonnetList:
+            self.WordList |= set(sonnet.WordList)
+        
+        self.RhymePair = []
+        for sonnet in self.sonnetList:
+            self.RhymePair.append(sonnet.RhymePair)
+            
+        if len(self.dict)!=0:
+            self.word_to_indexList = [eachSonnet.word_to_index for eachSonnet in sonnetList]
+        elif len(predefinedDict)!=0:
+            self.SetDict(predefinedDict)
+            for sonnet in self.sonnetList:
+                sonnet.SetDic(predefinedDict)
+        #else:
+#            self.SetDict_new()
+#            
+#    def SetDict_new(self):
+#        # define new dictionary, based on nltk
+#        
