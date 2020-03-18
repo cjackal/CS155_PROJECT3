@@ -49,7 +49,6 @@ def SonnetLoader(path, syl_dict=[]):
     with open(path) as f:
         txt = f.read()
         lines = txt.split('\n')
-        print(lines)
         for i in range(len(lines)):
             lines[i] = re.sub("^\s+", '', lines[i]).lower()
         beginning = 0

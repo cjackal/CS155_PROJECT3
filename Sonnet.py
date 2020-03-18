@@ -151,7 +151,6 @@ class Sonnets(Sonnet):
     def __init__(self, sonnetList, predefinedDict = []):
         self.sonnetList = sonnetList
         self.is_ending = [eachSonnet.is_ending for eachSonnet in sonnetList]
-        print(sonnetList)
         self.dict = sonnetList[0].dict
         
         self.WordList = set()
