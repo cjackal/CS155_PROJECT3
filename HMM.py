@@ -180,7 +180,7 @@ class HiddenMarkovModel:
         return betas
 
 
-    def unsupervised_learning(self, X, N_iters, threshold=0.01, verbose=False):
+    def unsupervised_learning(self, X, N_iters, threshold=0.001, verbose=False):
         '''
         Trains the HMM using the Baum-Welch algorithm on an unlabeled
         datset X. Note that this method does not return anything, but
@@ -330,7 +330,7 @@ class HiddenMarkovModel:
         # in j. Summing this value over all possible states j gives the
         # total probability of x paired with any state sequence, i.e.
         # the probability of x.
-        prob = sum(alphas[-1])
+        prob = np.sum(np.exp(alphas[-1,:]))
         return prob
 
 
@@ -405,7 +405,7 @@ class HiddenMarkovModel:
         return sonnet
 
 
-def unsupervised_HMM(X, n_states, N_iters, threshold=0.01, verbose=False):
+def unsupervised_HMM(X, n_states, N_iters, threshold=0.001, verbose=False):
     '''
     Helper function to train an unsupervised HMM. The function determines the
     number of unique observations in the given data, initializes
@@ -463,3 +463,60 @@ def unsupervised_HMM(X, n_states, N_iters, threshold=0.01, verbose=False):
     HMM.unsupervised_learning(X_reidxd, N_iters, threshold=threshold, verbose=verbose)
 
     return HMM, obs_idx
+
+def unsupervised_HMM_CV(X, n_states, N_iters, threshold=0.001, n_folds=5, verbose=False):
+    # Make a set of observations.
+    observations = set()
+    for x in X:
+        observations |= set(x)
+    
+    # Compute L and D.
+    L = n_states
+    D = len(observations)
+
+    obs_idx = {}
+    for i, obs in enumerate(list(observations)):
+        obs_idx[obs] = i
+ 
+    X_reidxd = []
+    for x in X:
+        x_reidxd = []
+        for obs in x:
+            x_reidxd.append(obs_idx[obs])
+        X_reidxd.append(x_reidxd)
+
+    # Randomly initialize and normalize matrix A.
+    A = [[random.random() for i in range(L)] for j in range(L)]
+
+    for i in range(len(A)):
+        norm = sum(A[i])
+        for j in range(len(A[i])):
+            A[i][j] /= norm
+    
+    # Randomly initialize and normalize matrix O.
+    O = [[random.random() for i in range(D)] for j in range(L)]
+
+    for i in range(len(O)):
+        norm = sum(O[i])
+        for j in range(len(O[i])):
+            O[i][j] /= norm
+
+    # Split dataset into train-validation pair.
+    divider = len(X_reidxd)//n_folds
+    random.shuffle(X_reidxd)
+    X_val = X_reidxd[:divider]
+    X_train = X_reidxd[divider:]
+
+    # Train an HMM with unlabeled data.
+    HMM = HiddenMarkovModel(A, O)
+    HMM.unsupervised_learning(X_train, N_iters, threshold=threshold, verbose=verbose)
+    
+    # Calculate log likelihood on validation set.
+    loglikelihoods = []
+    for x in X_val:
+        prob_alpha = HMM.probability_alphas(x)
+        if prob_alpha != 0:
+            loglikelihoods.append(np.log(prob_alpha))
+    loglikelihood = np.mean(loglikelihoods)
+
+    return HMM, loglikelihood, obs_idx
