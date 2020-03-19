@@ -54,7 +54,7 @@ def SonnetLoader(path):
         txt = f.read()
         lines = txt.split('\n')
         for i in range(len(lines)):
-            lines[i] = re.sub("^\s+", '', lines[i]).lower()
+            lines[i] = re.sub(r"^\s+", '', lines[i]).lower()
         beginning = 0
         sonnet_is_read = False
         i = 0
@@ -80,3 +80,24 @@ def SonnetLoader(path):
 
     #print(sonnets)
     return [Sonnet(sonnet) for sonnet in sonnets]
+
+def Roman_Decimal(s):
+    roman = 0
+    i = 0
+
+    value = {'I':1, 'V':5, 'X':10, 'L':50, 'C':100}
+    
+    while i < len(s):     
+        s1 = value[s[i]] 
+        if i+1 < len(s): 
+            s2 = value[s[i+1]] 
+            if s1 >= s2: 
+                roman += s1 
+                i += 1
+            else: 
+                roman += s2 - s1 
+                i += 2
+        else: 
+            roman += s1 
+            i += 1
+    return roman

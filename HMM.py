@@ -1,3 +1,4 @@
+import numpy as np
 import random
 
 class HiddenMarkovModel:
@@ -401,6 +402,55 @@ class HiddenMarkovModel:
                     for j in range(self.L)])
 
         return prob
+
+    def generate_sonnet(self, df, numLines=14):
+        idxtoword = df.index
+
+        A = np.asarray(self.A)
+        A_sum = A.sum(axis=1, keepdims=True)
+        A = A/A_sum
+        O = np.asarray(self.O)
+        O_sum = O.sum(axis=1, keepdims=True)
+        O = O/O_sum
+        A_start = np.asarray(self.A_start)
+        A_start_sum = np.sum(A_start)
+        A_start = A_start/A_start_sum
+
+        sonnet = []
+        for s in range(numLines):
+            line = []
+            maxsyllensum = 0
+            minsyllensum = 0
+            current_st = np.random.choice(self.L, p=A_start)    
+            while maxsyllensum<10:
+                current_word = np.random.choice(self.D, p=O[current_st,:])
+                length1 = abs(df.iloc[current_word]["length1"])
+                length2 = abs(df.iloc[current_word]["length2"])
+                isend1 = (df.iloc[current_word]["length1"]<0)
+                isend2 = (df.iloc[current_word]["length2"]<0)
+                
+                if minsyllensum + length1>10:
+                    pass
+                else:
+                    line.append(df.index[current_word])
+                    if maxsyllensum + max(length1, length2)>=10:
+                        minsyllensum += length1
+                        maxsyllensum += max(length1, length2)
+                    else:
+                        aretwosyllen = False
+                        if isend1==True:
+                            minsyllensum += length2
+                            maxsyllensum += length2
+                        elif isend2==True:
+                            minsyllensum += length1
+                            maxsyllensum += length1
+                        else:
+                            minsyllensum += length1
+                            maxsyllensum += max(length1, length2)
+                    current_st = np.random.choice(self.L, p=A[current_st,:])
+            sonnet.append(line)
+        return sonnet
+
 
 
 def supervised_HMM(X, Y):

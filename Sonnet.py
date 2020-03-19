@@ -53,7 +53,7 @@ class Sonnet:
                         unmatched.append(word)
             word_to_idx.append(word_to_idx_line)
         if len(unmatched)!=0:
-            print(self.unmatched)
+            print(unmatched)
             raise KeyError
 
         self.word_to_index = word_to_idx    ### sonnet with words replaced with the corresponding idx
