@@ -10,6 +10,21 @@ import re
 ## Master class 'sonnet'
 
 class Sonnet:
+#    Parameters:
+#            stringform: list of strings. sonnet as a list of words
+#            
+#            is_ending:  list of logical vluases. Whether the sonnet is ending. False by default, and True only at the end of each line
+#            
+#            dict:       predefined dictionary for syllable
+#            
+#            index_map:  map for converting word to index. self.index_map[word] corresponds to index
+#            
+#            word_to_index:    sonnet with words replaced with the corresponding idx
+#
+#            WordList:   list of unique words in the sonnet
+#   
+#            RhymePair:  Pair of words that rhymes in the sonnet
+
     def __init__(self, sonnet):
         self.stringform = sonnet        ### sonnet as a list of words itself
         is_ending = [[False for _ in range(len(line))] for line in sonnet]

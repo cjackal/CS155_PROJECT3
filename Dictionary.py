@@ -37,7 +37,7 @@ def syl_predef(filePath = './data/Syllable_dictionary.txt'):
     length2==0 iff fixed syllable length
     |length1|<|length2| if variable syllable length
     """
-    syl_dict.head()
+    # syl_dict.head()
     return syl_dict
     
 def sylAndStr_nltk(wordList):
