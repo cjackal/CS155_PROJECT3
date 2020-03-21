@@ -40,15 +40,46 @@ def sylAndStr_nltk(wordList):
     # returns dataFrame object that contains number of syllables and stress information from the given wordList
     pro = cmudict.dict()
     stressList = []
+    unmatched = []  # list of unmatched words
+    wordList_list = []
     
     for word in wordList:
-        temp = pro[word]
-        stressList_temp = [[[phoneme[-1] if phoneme[-1].isdigit() else None] for phoneme in phonemeList] for phonemeList in temp]
-        for i in range(len(stressList_temp)):
-            stressList_temp[i] = [int(s[0]) for s in stressList_temp[i] if s!=[None]]
-        stressList.append(stressList_temp)
+        #temp = pro[word]
+        temp = pro.get(word)
+        if temp==None:
+            unmatched.append(word)
+        else:
+            stressList_temp = [[[phoneme[-1] if phoneme[-1].isdigit() else None] for phoneme in phonemeList] for phonemeList in temp]
+            for i in range(len(stressList_temp)):
+                stressList_temp[i] = [int(s[0]) for s in stressList_temp[i] if s!=[None]]
+            stressList.append(stressList_temp)
+            wordList_list.append(word)
+    syl_num = [ [len(stress) for stress in chosenWord] for chosenWord in stressList]  
     
-    syl_num = [ [len(stress) for stress in chosenWord] for chosenWord in stressList]        
-    df = pd.DataFrame(list(zip(syl_num, stressList)), columns =['syl_num', 'stress']) 
+    if len(unmatched)!=0:
+        from nltk.tokenize import SyllableTokenizer # use syllable tokenizer only when syllabel&stress info is not found in cmudict
+        SSP = SyllableTokenizer()
+        
+        for word in unmatched:  # for each of the words not found in the dictionary, put the number of syllables based on SSP, and add an empty entry in stressList
+            temp = SSP.tokenize(word)
+            syl_num.append([len(temp)])
+            stressList.append([])
+            
+    for i, syl_num_list in enumerate(syl_num):
+        if len(syl_num_list)==1 or len(set(tuple(x) for x in stressList[i]))==len(stressList[i]):
+            continue
+        syl_num_temp = []
+        stress_temp = []
+        for j, syl_num_each in enumerate(syl_num_list):
+            duplicate = any([syl_num_each==x for x in syl_num_list[j+1:]])
+            duplicate_stress = any([stressList[i][j]==x for x in stressList[i][j+1:]])
+            if duplicate == False and duplicate_stress == False:
+                syl_num_temp.append(syl_num_each)
+                stress_temp.append(stressList[i][j])
+        syl_num[i] = syl_num_temp
+        stressList[i] = stress_temp
+      
+    df = pd.DataFrame(list(zip(wordList_list, syl_num, stressList)), columns =['word', 'syl_num', 'stress']) 
+    df.set_index("word", inplace=True)
     
     return df
