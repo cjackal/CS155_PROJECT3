@@ -131,9 +131,9 @@ class LSTM_word(LSTM_char):
         self.model = Sequential()
         self.LSTM_numUnits = LSTM_numUnits
     
-    def SonnetLoader(self, path):
+    def SonnetLoader(self, path='shakespeare'):
         syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
-        a = Utility.SonnetLoader('shakespeare', syl_dict)
+        a = Utility.SonnetLoader(path, syl_dict)
         self.sonnets = Sonnets(a)
     
     def getTrainSeq(self):

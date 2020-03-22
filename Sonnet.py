@@ -13,7 +13,7 @@ class Sonnet:
 #            
 #            is_ending:  list of logical vluases. Whether the sonnet is ending. False by default, and True only at the end of each line
 #            
-#            dict:       predefined dictionary for syllable
+#            dict:       dictionary for syllable
 #            
 #            index_map:  map for converting word to index. self.index_map[word] corresponds to index
 #            
@@ -22,6 +22,8 @@ class Sonnet:
 #            WordList:   list of unique words in the sonnet
 #   
 #            RhymePair:  Pair of words that rhymes in the sonnet
+#
+#            dict_stress:  dictionary for stress
     
     def __init__(self, sonnet, predefinedDict = []):
         self.stringform = sonnet        ### sonnet as a list of words itself
@@ -38,6 +40,7 @@ class Sonnet:
             
         self.WordList = self.returnWordList()
         self.RhymePair = self.returnRhymePair()
+        self.dict_stress = []
 
     def __repr__(self):
         s = ''
@@ -83,6 +86,7 @@ class Sonnet:
                     raise KeyError
                     
         self.word_to_index = word_to_idx    ### sonnet with words replaced with the corresponding idx
+        self.WordList = self.returnWordList() # reassign word list, as some of it got changed (e.g. removing apostrophes, etc)
 
     def IsRegular(self):
         """
@@ -120,6 +124,8 @@ class Sonnet:
                             else:
                                 syllable_counter_max += abs(df.loc[line[i]][1])
                                 syllable_counter_min += abs(df.loc[line[i]][0])
+                                
+                                
                     if syllable_counter_min <= 10 <= syllable_counter_max:
                         regularity += 1
             if regularity==14:
@@ -128,6 +134,85 @@ class Sonnet:
 
         except AttributeError:
             print("Set the syllable dictionary to use.")
+            
+    def IsRegular_line(self, line):
+        """
+        Check if the given line is in regular (pentameter) form: 
+        Must set the syllable dictionary beforehand.
+        """
+        df = self.dict
+        syllable_counter_min = 0
+        syllable_counter_max = 0
+        isregular = False
+        for i in range(len(line)):
+            if i<len(line)-1:
+                if df.loc[line[i]][1]==0:
+                    syllable_counter_max += df.loc[line[i]][0]
+                    syllable_counter_min += df.loc[line[i]][0]
+                else:
+                    if df.loc[line[i]][0]<0:
+                        syllable_counter_max += df.loc[line[i]][1]
+                        syllable_counter_min += df.loc[line[i]][1]
+                    elif df.loc[line[i]][1]<0:
+                        syllable_counter_max += df.loc[line[i]][0]
+                        syllable_counter_min += df.loc[line[i]][0]
+                    else:
+                        syllable_counter_max += df.loc[line[i]][1]
+                        syllable_counter_min += df.loc[line[i]][0]
+            else:
+                if df.loc[line[i]][1]==0:
+                    syllable_counter_max += df.loc[line[i]][0]
+                    syllable_counter_min += df.loc[line[i]][0]
+                else:
+                    syllable_counter_max += abs(df.loc[line[i]][1])
+                    syllable_counter_min += abs(df.loc[line[i]][0])
+        if syllable_counter_min <= 10 <= syllable_counter_max:
+            isregular = True
+            
+        return isregular
+    
+    def IsRegular_stress_line(self, line, strict = False):
+        """
+        Check if the given line is in regular (pentameter) form in terms of stress: 
+        Must set the syllable dictionary beforehand.
+        The input "strict" decides whether stress should strictly follow iambic pentameter (i.e. stress from nltk should strictly follow 0, 1, 0, 1, ...)
+        or it can have some syllables with same stress in a row (i.e. 1, 1, 1, ... for a few words. c.f. Shall I compare thee ... also falls into this category, because "shall" has a primary stress)
+        """
+        from itertools import product
+        from itertools import chain
+        import numpy as np
+        maxLen = 10  # assume that maximum number of words in a single line is 10
+        df = self.dict_stress
+        print(df)
+        print(line)
+        stress = [df.loc[x][0] for x in line]
+        for i in range(maxLen-len(stress)):
+            stress.append([[-1]]) # fix the length of the list to 10
+        
+        comb = list(product(stress[0], stress[1], stress[2], stress[3], stress[4], stress[5], stress[6], stress[7], stress[8], stress[9]))
+        isregular = False
+        for x in comb:
+            stressList = list(chain.from_iterable(x))
+            stressList = np.array([x for x in stressList if x!=-1])
+            print(stressList)
+            
+            stressChng = [stressList[i]-stressList[i-1] for i in range(1, len(stressList), 1)]
+            isregular_temp = True
+            for i, y in enumerate(stressChng):
+                if not strict and ((i%2 == 0 and y<0) or (i%2 == 1 and y>0)):
+                    isregular_temp = False
+                    break
+                elif strict and ((i%2 == 0 and y<=0) or (i%2 == 1 and y>=0)):
+                    isregular_temp = False
+                    break
+                
+            if isregular_temp==True:
+                isregular = True
+                print('True: ', stressList)
+                break
+            
+        return isregular
+
 
     def returnWordList(self):
         s = set()
@@ -152,6 +237,7 @@ class Sonnets(Sonnet):
         self.sonnetList = sonnetList
         self.is_ending = [eachSonnet.is_ending for eachSonnet in sonnetList]
         self.dict = sonnetList[0].dict
+        self.dict_stress = sonnetList[0].dict_stress
         
         self.WordList = set()
         for sonnet in self.sonnetList:
@@ -170,9 +256,37 @@ class Sonnets(Sonnet):
         else:
             self.SetDict_new()
             
+        if len(self.dict)!=0 and len(self.dict_stress)==0:
+            self.SetDict_stress()
+            
     def SetDict_new(self):
         # define new dictionary, based on nltk
-        from Dictionary import Dictionary
-        self.dict = Dictionary.sylAndStr_nltk(self.WordList)
-        
-        
+        import Dictionary
+        self.dict, self.dict_stress = Dictionary.sylAndStr_nltk(self.WordList)
+
+    def SetDict_stress(self):   # set dictionary for stress based on nltk
+        if len(self.dict)!=0 and len(self.dict_stress)==0:
+            import Dictionary
+            dict_temp, self.dict_stress = Dictionary.sylAndStr_nltk(self.WordList, self.dict)
+            for i, x in enumerate(self.dict_stress["stress"]):
+                word = self.dict_stress.index[i]
+                sylNum_end = None               # number of syllables if a word is at the end of the line
+                if self.dict.loc[word][0]<0: 
+                    sylNum_end = abs(self.dict["length1"][i])
+                elif self.dict.loc[word][1]<0:
+                    sylNum_end = abs(self.dict["length2"][i])
+                    
+                if sylNum_end == None:
+                    continue
+                sylNum_temp = [dict_temp.loc[word][0], dict_temp.loc[word][1]]
+                if sylNum_end != sylNum_temp[0] and sylNum_end != sylNum_temp[1]: # add additional pronunciation for the words which have less syllables at the end of the line
+                    #print(word)
+                    #print('stress list: ', self.dict_stress["stress"][i], 'syllable list: ', self.dict.loc[word][0], self.dict.loc[word][1])
+                    stress_temp = [xx[0:-1] for xx in x]
+                    self.dict_stress["stress"][i] = self.dict_stress["stress"][i]+stress_temp
+                    
+        print(self.dict_stress)
+                
+                    
+                    
+            

@@ -36,50 +36,90 @@ def syl_predef(filePath = './data/Syllable_dictionary.txt'):
     syl_dict.head()
     return syl_dict
     
-def sylAndStr_nltk(wordList):
+def sylAndStr_nltk(wordList, dict_syl=[]):
     # returns dataFrame object that contains number of syllables and stress information from the given wordList
     pro = cmudict.dict()
     stressList = []
     unmatched = []  # list of unmatched words
     wordList_list = []
     
-    for word in wordList:
-        #temp = pro[word]
+    for word in wordList: # get number of syllables and stress data
         temp = pro.get(word)
         if temp==None:
             unmatched.append(word)
         else:
-            stressList_temp = [[[phoneme[-1] if phoneme[-1].isdigit() else None] for phoneme in phonemeList] for phonemeList in temp]
+            stressList_temp = [[ [phoneme[-1] if phoneme[-1].isdigit() else None] for phoneme in phonemeList] for phonemeList in temp]
             for i in range(len(stressList_temp)):
                 stressList_temp[i] = [int(s[0]) for s in stressList_temp[i] if s!=[None]]
+                idx = [x for x in range(len(stressList_temp[i])) if stressList_temp[i][x]==2]
+                if len(idx)!=0:
+                    for idx_each in idx:
+                        stressList_temp[i][idx_each] = 0.5 # for convenience, put 0.5 instead of 2 for secondary stress
             stressList.append(stressList_temp)
             wordList_list.append(word)
-    syl_num = [ [len(stress) for stress in chosenWord] for chosenWord in stressList]  
+    syl_num = [ set([len(stress) for stress in chosenWord]) for chosenWord in stressList]  
     
-    if len(unmatched)!=0:
+    if len(unmatched)!=0:   # Take care of the words that were not found in the nltk package
+        from itertools import chain
         from nltk.tokenize import SyllableTokenizer # use syllable tokenizer only when syllabel&stress info is not found in cmudict
         SSP = SyllableTokenizer()
         
         for word in unmatched:  # for each of the words not found in the dictionary, put the number of syllables based on SSP, and add an empty entry in stressList
-            temp = SSP.tokenize(word)
-            syl_num.append([len(temp)])
-            stressList.append([])
-            
-    for i, syl_num_list in enumerate(syl_num):
-        if len(syl_num_list)==1 or len(set(tuple(x) for x in stressList[i]))==len(stressList[i]):
+            if len(dict_syl)!=0:
+                try:
+                    syl = []
+                    for x in [dict_syl.loc[word][0], dict_syl.loc[word][1]]:
+                        if x>0:
+                            syl.append(x)
+                    syl_num.append(set(map(tuple, [syl])))
+                except: 
+                    print("word not found: ", word)
+            else:
+                syl = len(SSP.tokenize(word))
+                syl_num.append({syl})
+            stress_temp = []
+            for x in syl:
+                temp = [[0]*x, [1]*x]
+                for i, _ in enumerate(temp[0]):
+                    if i%2==1:  
+                        temp[0][i] = 1
+                        temp[1][i] = 0
+                stress_temp.append(temp)
+            stress_temp = list(chain.from_iterable(stress_temp))
+            stressList.append(stress_temp)   # if the stress data is unknown, assume that it follows the iambic pentameter; 
+                                                # hence, put two hypothetical stress list - [0, 1, 0, 1, ...], [1, 0, 1, 0, ...] - which follows iambic pentameter
+            wordList_list.append(word)
+                                                
+    for i, stress_eachWord in enumerate(stressList):    # leave only unique stresses in each word
+        if len(set(map(tuple, x) for x in stress_eachWord))==len(stress_eachWord):
             continue
-        syl_num_temp = []
         stress_temp = []
-        for j, syl_num_each in enumerate(syl_num_list):
-            duplicate = any([syl_num_each==x for x in syl_num_list[j+1:]])
-            duplicate_stress = any([stressList[i][j]==x for x in stressList[i][j+1:]])
-            if duplicate == False and duplicate_stress == False:
-                syl_num_temp.append(syl_num_each)
-                stress_temp.append(stressList[i][j])
-        syl_num[i] = syl_num_temp
+        for j, stress_eachStress in enumerate(stress_eachWord):
+            duplicate_stress = any([stress_eachStress==x for x in stressList[i][j+1:]])
+            if duplicate_stress == False:
+                stress_temp.append(stress_eachStress)
         stressList[i] = stress_temp
       
-    df = pd.DataFrame(list(zip(wordList_list, syl_num, stressList)), columns =['word', 'syl_num', 'stress']) 
-    df.set_index("word", inplace=True)
+    # split the data in syl_num into length1 and length2, to make a consistent structure in syllable dictionary
+    length1 = []
+    length2 = []
+    for syl_eachWord in syl_num:
+        i = 0
+        for x in syl_eachWord:
+            if i == 0:
+                length1.append(x)
+            elif i == 1:
+                length2.append(x)
+            i += 1
+        if i==1:
+            length2.append(0)               
+            
+    #df = pd.DataFrame(list(zip(wordList_list, syl_num, stressList)), columns =['word', 'syl_num', 'stress']) 
     
-    return df
+    df_syl = pd.DataFrame(list(zip(wordList_list, length1, length2)), columns =['word', 'length1', 'length2']) 
+    df_syl.set_index("word", inplace=True)
+    
+    df_stress = pd.DataFrame(list(zip(wordList_list, stressList)), columns =['word', 'stress']) 
+    df_stress.set_index("word", inplace=True)
+    
+    return df_syl, df_stress
