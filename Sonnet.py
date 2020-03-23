@@ -5,6 +5,10 @@ Created on Wed Mar 11 15:08:52 2020
 @author: HyeongChan Jo, Juhyun Kim
 """
 import re
+from itertools import product
+from itertools import chain
+import numpy as np
+import Dictionary
 
 ## class 'sonnet' for saving data about a single sonnet
 class Sonnet:
@@ -178,13 +182,8 @@ class Sonnet:
         The input "strict" decides whether stress should strictly follow iambic pentameter (i.e. stress from nltk should strictly follow 0, 1, 0, 1, ...)
         or it can have some syllables with same stress in a row (i.e. 1, 1, 1, ... for a few words. c.f. Shall I compare thee ... also falls into this category, because "shall" has a primary stress)
         """
-        from itertools import product
-        from itertools import chain
-        import numpy as np
         maxLen = 10  # assume that maximum number of words in a single line is 10
         df = self.dict_stress
-        print(df)
-        print(line)
         stress = [df.loc[x][0] for x in line]
         for i in range(maxLen-len(stress)):
             stress.append([[-1]]) # fix the length of the list to 10
@@ -194,7 +193,6 @@ class Sonnet:
         for x in comb:
             stressList = list(chain.from_iterable(x))
             stressList = np.array([x for x in stressList if x!=-1])
-            print(stressList)
             
             stressChng = [stressList[i]-stressList[i-1] for i in range(1, len(stressList), 1)]
             isregular_temp = True
@@ -208,7 +206,6 @@ class Sonnet:
                 
             if isregular_temp==True:
                 isregular = True
-                print('True: ', stressList)
                 break
             
         return isregular
@@ -236,9 +233,13 @@ class Sonnets(Sonnet):
     def __init__(self, sonnetList, predefinedDict = []):
         self.sonnetList = sonnetList
         self.is_ending = [eachSonnet.is_ending for eachSonnet in sonnetList]
-        self.dict = sonnetList[0].dict
-        self.dict_stress = sonnetList[0].dict_stress
-        
+        if predefinedDict == []:
+            self.dict = sonnetList[0].dict
+            self.dict_stress = sonnetList[0].dict_stress
+        else: 
+            self.dict = predefinedDict
+            self.dict_stress = sonnetList[0].dict_stress
+            
         self.WordList = set()
         for sonnet in self.sonnetList:
             self.WordList |= set(sonnet.WordList)
@@ -256,17 +257,18 @@ class Sonnets(Sonnet):
         else:
             self.SetDict_new()
             
-        if len(self.dict)!=0 and len(self.dict_stress)==0:
+        if len(self.dict_stress)==0:
             self.SetDict_stress()
             
+    def SetDict(self, df):  ### Set the syllable dictionary.
+        self.dict = df                  ### Temporary format: rows indexed by the words, with two columns of possible syllables
+                
     def SetDict_new(self):
         # define new dictionary, based on nltk
-        import Dictionary
         self.dict, self.dict_stress = Dictionary.sylAndStr_nltk(self.WordList)
 
     def SetDict_stress(self):   # set dictionary for stress based on nltk
         if len(self.dict)!=0 and len(self.dict_stress)==0:
-            import Dictionary
             dict_temp, self.dict_stress = Dictionary.sylAndStr_nltk(self.WordList, self.dict)
             for i, x in enumerate(self.dict_stress["stress"]):
                 word = self.dict_stress.index[i]
@@ -285,8 +287,7 @@ class Sonnets(Sonnet):
                     stress_temp = [xx[0:-1] for xx in x]
                     self.dict_stress["stress"][i] = self.dict_stress["stress"][i]+stress_temp
                     
-        print(self.dict_stress)
-                
+        
                     
                     
             

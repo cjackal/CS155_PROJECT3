@@ -8,8 +8,10 @@ Created on Wed Mar 11 15:13:31 2020
 import pandas as pd
 import nltk
 from nltk.corpus import cmudict
+from itertools import chain
+from nltk.tokenize import SyllableTokenizer # use syllable tokenizer only when syllabel&stress info is not found in cmudict
+import re
 nltk.download('cmudict')
-
 
 def syl_predef(filePath = './data/Syllable_dictionary.txt'):
     syl_dict = pd.read_csv(filePath, sep=' ', names=["word", "length1", "length2"])
@@ -42,6 +44,7 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
     stressList = []
     unmatched = []  # list of unmatched words
     wordList_list = []
+    syl_num = []
     
     for word in wordList: # get number of syllables and stress data
         temp = pro.get(word)
@@ -57,17 +60,22 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
                         stressList_temp[i][idx_each] = 0.5 # for convenience, put 0.5 instead of 2 for secondary stress
             stressList.append(stressList_temp)
             wordList_list.append(word)
-    syl_num = [ set([len(stress) for stress in chosenWord]) for chosenWord in stressList]  
+            
+            #print([dict_syl.index.tolist()])
+            if len(dict_syl)!=0 and len([x for x in dict_syl.index if x==word])!=0:
+                syl_num.append( set([dict_syl.loc[word][0], dict_syl.loc[word][1]]) )
+            else:
+                syl_num.append( set([len(stress) for stress in stressList_temp]) )
+    #syl_num = [ set([len(stress) for stress in chosenWord]) for chosenWord in stressList]  
     
     if len(unmatched)!=0:   # Take care of the words that were not found in the nltk package
-        from itertools import chain
-        from nltk.tokenize import SyllableTokenizer # use syllable tokenizer only when syllabel&stress info is not found in cmudict
+        
         SSP = SyllableTokenizer()
         
         for word in unmatched:  # for each of the words not found in the dictionary, put the number of syllables based on SSP, and add an empty entry in stressList
+            syl = []
             if len(dict_syl)!=0:
                 try:
-                    syl = []
                     for x in [dict_syl.loc[word][0], dict_syl.loc[word][1]]:
                         if x>0:
                             syl.append(x)
@@ -75,9 +83,11 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
                 except: 
                     print("word not found: ", word)
             else:
-                syl = len(SSP.tokenize(word))
-                syl_num.append({syl})
+                word_temp = re.sub(r"'", "", word)
+                syl.append(len(SSP.tokenize(word_temp)))
+                syl_num.append(set(map(tuple, [syl])))
             stress_temp = []
+            #print(syl)
             for x in syl:
                 temp = [[0]*x, [1]*x]
                 for i, _ in enumerate(temp[0]):

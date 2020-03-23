@@ -20,6 +20,9 @@ from keras.models import load_model
 from keras.callbacks import EarlyStopping
 from keras.preprocessing.sequence import pad_sequences
 from keras.layers import LSTM
+from itertools import chain
+from keras.layers.embeddings import Embedding
+from keras import backend as K
 
 class LSTM_char:
     def __init__(self, seqLen = 40, step = 4, LSTM_numUnits = 200):
@@ -132,9 +135,21 @@ class LSTM_word(LSTM_char):
         self.LSTM_numUnits = LSTM_numUnits
     
     def SonnetLoader(self, path='shakespeare'):
-        syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
-        a = Utility.SonnetLoader(path, syl_dict)
-        self.sonnets = Sonnets(a)
+        if path=='shakespeare':
+            syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
+            a = Utility.SonnetLoader(path, syl_dict)
+        elif isinstance(path, list) and len(path)>1:
+            a = [Utility.SonnetLoader(x) for x in path]
+            a = list(chain.from_iterable(a))
+        else:
+            a = Utility.SonnetLoader(path)
+        
+        #import pdb; pdb.set_trace()
+        if len([x for x in path if x=='shakespeare']):
+            syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
+            self.sonnets = Sonnets(a, syl_dict)
+        else: 
+            self.sonnets = Sonnets(a)
     
     def getTrainSeq(self):
         for sonnet in self.sonnets.sonnetList:
@@ -144,7 +159,7 @@ class LSTM_word(LSTM_char):
                 sonnet_concat = sonnet_concat+['\n']    # line change is also predicted
             for i in range(self.seqLen, len(sonnet_concat), self.step):
                 self.trainSeq.append(sonnet_concat[i-self.seqLen:i+1])
-                
+        
     def getMapping(self):
         self.mapping = self.sonnets.sonnetList[0].index_map
         self.mapping['\n'] = len(self.mapping)
@@ -162,7 +177,6 @@ class LSTM_word(LSTM_char):
     def Train(self, useWordEmbedding = False, embeddingSize = 100, patience = 10, numEpoch = 100):
         # patientce: how many epochs can we wait to see a decrese in loss function
         if useWordEmbedding:
-            from keras.layers.embeddings import Embedding
             self.model.add(Embedding(self.voca_size, embeddingSize, input_length=self.seqLen))
             self.model.add(LSTM(self.LSTM_numUnits))
         else:
@@ -193,23 +207,30 @@ class LSTM_word(LSTM_char):
     def LoadModel(self, modelName = 'model.h5', mappingName = 'mapping.pkl'):
         self.model = load_model('model_withWords.h5')
         self.mapping = load(open('mapping_withWords.pkl', 'rb'))
-        
-    def Predict(self, inputText, outputText_len=100, temperature = 1):
+                
+    def Predict(self, inputText, outputText_len=100, temperature = 1, checkPentameter = True, std=0.5):
         # Take car of temperature by adding lambda layer to the model        
         model_predict = Sequential()
         model_predict.add(self.model.layers[0])
         model_predict.add(Lambda(lambda x: x/temperature))
+        if checkPentameter:
+            model_predict.add(Lambda(lambda x: K.random_normal(shape = [1], mean = 0, stddev = 0.1)*x))
+            #model_predict.add(Lambda(lambda x: self.temp(x, shape = [1], mean = 0, stddev = 0.1)))
+            
         model_predict.add(self.model.layers[-1])
         model_predict.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
         model_predict.set_weights(self.model.get_weights())
         
         # parse the input text
+        idx_lineChng = []
         inputText_parsed = re.sub(r"[^-'\w\s]", '', inputText).split()
         if inputText[-1:]=='\n':
             inputText_parsed = inputText_parsed+['\n']    # line change is also predicted
-    
+            idx_lineChng.append(len(inputText_parsed)-1)
+            
         # make predictions
-        for _ in range(outputText_len):
+        i=0
+        while i<outputText_len:
             inputText_encoded = [self.mapping[word] for word in inputText_parsed]
             inputText_encoded = pad_sequences([inputText_encoded], maxlen = self.seqLen, truncating = 'pre')
             inputText_encoded = utils.to_categorical(inputText_encoded, num_classes=len(self.mapping))
@@ -218,7 +239,29 @@ class LSTM_word(LSTM_char):
             	if index == outputWord:
             		outputWord = word
             		break
-            inputText_parsed.append(outputWord)
+            if checkPentameter and (outputWord=='\n' or len(inputText_parsed)-idx_lineChng[-1]>10):
+                line = inputText_parsed[idx_lineChng[-1]+1:]
+                if self.sonnets.IsRegular_line(line) and self.sonnets.IsRegular_stress_line(line):
+                    inputText_parsed.append(outputWord)
+                    i+=1
+                    idx_lineChng.append(len(inputText_parsed)-1)
+                    print('Completed sentence: ', inputText_parsed[idx_lineChng[-2]+1:])
+                else:
+                    print('Wrong sentence: ', inputText_parsed[idx_lineChng[-1]+1:])
+                    seed()
+                    
+                    model_predict = Sequential()
+                    model_predict.add(self.model.layers[0])
+                    model_predict.add(Lambda(lambda x: x/temperature))
+                    model_predict.add(Lambda(lambda x: K.random_normal(shape = [1], mean = 0, stddev = 0.1)*x))
+                    model_predict.add(self.model.layers[-1])
+                    model_predict.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+                    model_predict.set_weights(self.model.get_weights())
+                    
+                    inputText_parsed = inputText_parsed[0:idx_lineChng[-1]+1]
+            else:
+                inputText_parsed.append(outputWord)
+                i+=1
             
         # join the parsed words
         outputText = " ".join(inputText_parsed)
