@@ -25,12 +25,14 @@ class Sonnet:
 #   
 #            RhymePair:  Pair of words that rhymes in the sonnet
 
-    def __init__(self, sonnet):
+    def __init__(self, sonnet, predefinedDict=[]):
         self.stringform = sonnet        ### sonnet as a list of words itself
         is_ending = [[False for _ in range(len(line))] for line in sonnet]
         for line in is_ending:
             line[-1] = True
         self.is_ending = is_ending      ### Encoding the location of the end of each lines (having the same shape as stringform)
+        if len(predefinedDict)!=0:
+            self.SetDict(predefinedDict)
 
     def __repr__(self):
         s = ''

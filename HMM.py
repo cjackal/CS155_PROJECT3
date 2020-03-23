@@ -193,6 +193,8 @@ class HiddenMarkovModel:
 
             N_iters:    The number of iterations to train on.
         '''
+        patience = 2    # Num of epochs to be waited before early stopping criterion applies.
+
         if verbose:
             print('Train unsupervised HMM:')
         for _ in range(N_iters):
@@ -234,7 +236,7 @@ class HiddenMarkovModel:
             delta_A = np.abs(self.A_log - A_log_prev)
             delta_O = np.abs(self.O_log - O_log_prev)
 
-            if np.amax(delta_A*np.exp(A_log_prev))+np.amax(delta_O*np.exp(O_log_prev)) < threshold:
+            if _>patience and (np.amax(delta_A*np.exp(A_log_prev))+np.amax(delta_O*np.exp(O_log_prev)) < threshold):
                 if verbose:
                     print('Converged at', _, 'iterations')
                 break
