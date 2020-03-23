@@ -145,7 +145,7 @@ class LSTM_word(LSTM_char):
             a = Utility.SonnetLoader(path)
         
         #import pdb; pdb.set_trace()
-        if len([x for x in path if x=='shakespeare']):
+        if len([x for x in path if x=='shakespeare'])!=0:
             syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
             self.sonnets = Sonnets(a, syl_dict)
         else: 
@@ -174,7 +174,7 @@ class LSTM_word(LSTM_char):
         print(self.X[0][0].size)
         print(self.y.size)
     
-    def Train(self, useWordEmbedding = False, embeddingSize = 100, patience = 10, numEpoch = 100):
+    def Train(self, useWordEmbedding = False, embeddingSize = 100, patience = 10, numEpoch = 100, fileName = 'model'):
         # patientce: how many epochs can we wait to see a decrese in loss function
         if useWordEmbedding:
             self.model.add(Embedding(self.voca_size, embeddingSize, input_length=self.seqLen))
@@ -196,13 +196,15 @@ class LSTM_word(LSTM_char):
         
         # save the model & mapping to file
         if useWordEmbedding:
-            name = "model_withWordEmbedding %d.h5" % embeddingSize
+            name = "%s_withWordEmbedding %d.h5" % (fileName, embeddingSize)
             self.model.save(name)
-            name = "mapping_withWordEmbedding %d.pk1" % embeddingSize
+            name = "%s_mapping_withWordEmbedding %d.pk1" % (fileName, embeddingSize)
             dump(self.mapping, open(name, 'wb'))
         else:
-            self.model.save('model_withWords_noEmbedding.h5')
-            dump(self.mapping, open('mapping_withWords_noEmbedding.pkl', 'wb'))
+            name = "%s_withWords_noEmbedding.h5" % fileName
+            self.model.save(name)
+            name = "%s_mapping_withWords_noEmbedding.pkl" % fileName
+            dump(self.mapping, open(name, 'wb'))
         
     def LoadModel(self, modelName = 'model.h5', mappingName = 'mapping.pkl'):
         self.model = load_model('model_withWords.h5')
