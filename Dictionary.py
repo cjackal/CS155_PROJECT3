@@ -67,7 +67,7 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
             word = unprocessed_word
         temp = pro.get(word)
         
-        if temp==None: # Take care of the words that were not found in the nltk package
+        if temp==None: # Take care of the words not found in the nltk package
             syl = set() # for each of the words not found in the dictionary, put the number of syllables based on SSP, and add an empty entry in stressList
             if len(dict_syl)!=0 and (word in dict_syl.index):
                 syl = {dict_syl.loc[word][0], dict_syl.loc[word][1]}
@@ -75,7 +75,7 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
                     syl.discard(0)
                 syl_num.append(syl)
             else:
-                word_temp = re.sub(r"'", "", word)          ### Now <word> have no apos at the start or end, do we still need to remove interior apos?
+                word_temp = re.sub(r"'", "", word)          ### In tokenizer apostrophe counts as having a syllable, so we first remove them
                 syl.add(len(SSP.tokenize(word_temp)))
                 syl_num.append(syl)
             
@@ -89,7 +89,7 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
                 stress_temp.append(temp)
             stress_temp = list(chain.from_iterable(stress_temp))
             stressList.append(stress_temp)   # if the stress data is unknown, assume that it follows the iambic pentameter; 
-                                                # hence, put two hypothetical stress list - [0, 1, 0, 1, ...], [1, 0, 1, 0, ...] - which follows iambic pentameter
+                                            # hence, put two hypothetical stress list - [0, 1, 0, 1, ...], [1, 0, 1, 0, ...] - which follows iambic pentameter
         else:
             stressList_temp = [[(phoneme[-1] if phoneme[-1].isdigit() else None) for phoneme in phonemeList] for phonemeList in temp]
             for i in range(len(stressList_temp)):
