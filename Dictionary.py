@@ -53,18 +53,31 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
     SSP = SyllableTokenizer()
     
     for unprocessed_word in wordList: # get number of syllables and stress data
-        if pro.get(unprocessed_word)==None:
-            if unprocessed_word in exceptional:     # Exception handler. Re-searching word in CMU dictionary after removing apostrophes.
-                word = unprocessed_word
-            else:
-                if pro.get(re.sub(r"'$", "", unprocessed_word))!=None:
-                    word = re.sub(r"'$", "", unprocessed_word)
-                elif pro.get(re.sub(r"^'", "", unprocessed_word))!=None:
-                    word = re.sub(r"^'", "", unprocessed_word)
-                else:
-                    word = re.sub(r"'$", "", re.sub(r"^'", "", unprocessed_word))
+        word_in_dict = True
+        if unprocessed_word in dict_syl.index:      # First check if the word is in dict_syl
+            processed_word = unprocessed_word
+        elif re.sub(r"'$", "", unprocessed_word) in dict_syl.index:
+            processed_word = re.sub(r"'$", "", unprocessed_word)
+        elif re.sub(r"^'", "", unprocessed_word) in dict_syl.index:
+            processed_word = re.sub(r"^'", "", unprocessed_word)
+        elif re.sub(r"'$", "", re.sub(r"^'", "", unprocessed_word)) in dict_syl.index:
+            processed_word = re.sub(r"'$", "", re.sub(r"^'", "", unprocessed_word))
         else:
-            word = unprocessed_word
+            processed_word = unprocessed_word
+            word_in_dict = False
+
+        if not word_in_dict and pro.get(processed_word)==None:
+            if processed_word in exceptional:     # Exception handler. Re-searching word in CMU dictionary after removing apostrophes.
+                word = processed_word
+            else:
+                if pro.get(re.sub(r"'$", "", processed_word))!=None:
+                    word = re.sub(r"'$", "", processed_word)
+                elif pro.get(re.sub(r"^'", "", processed_word))!=None:
+                    word = re.sub(r"^'", "", processed_word)
+                else:
+                    word = re.sub(r"'$", "", re.sub(r"^'", "", processed_word))
+        else:
+            word = processed_word
         temp = pro.get(word)
         
         if temp==None: # Take care of the words not found in the nltk package

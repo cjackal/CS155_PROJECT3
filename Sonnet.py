@@ -17,15 +17,16 @@ class Sonnet:
 #            is_ending:  list of logical values. Whether the sonnet is ending. False by default, True only at the end of each line
 #            
 #            dict_syl:   predefined dictionary for syllable
-#
+#        
 #            dict_stress:predefined dictionary for stress
 #            
 #            index_map:  map for converting word to index. self.index_map[word] corresponds to index
 #            
 #            indexform:  sonnet with words replaced with the corresponding idx
-#
+#       
+#    Methods:
 #            WordList:   list of unique words in the sonnet
-#   
+#    
 #            RhymePair:  Pair of words that rhymes in the sonnet
 
     def __init__(self, sonnet, Dict_syl=[], Dict_stress=[]):
@@ -35,9 +36,9 @@ class Sonnet:
             line[-1] = True
         self.is_ending = is_ending      ### Encoding the location of the end of each lines (having the same shape as stringform)
         if len(Dict_syl)!=0:
-            self.dict_syl = Dict_syl    ### Set the syllable dictionary. Rows indexed by the words, with two columns of possible syllables
+            self.SetDict(Dict_syl)    ### Set the syllable dictionary. Rows indexed by the words, with two columns of possible syllables
         if len(Dict_stress)!=0:
-            self.dict_stress = Dict_stress  ### Set the stress dictionary. Rows indexed by the words, with one column of list of possible stresses
+            self.SetDict_stress(Dict_stress)  ### Set the stress dictionary. Rows indexed by the words, with one column of list of possible stresses
 
     def __repr__(self):
         s = ''
@@ -46,7 +47,7 @@ class Sonnet:
                 if i==0:
                     s += word.capitalize()
                 else:
-                    s += word + ' '
+                    s += ' ' + word
             s += '\n'
         return s
 
@@ -102,7 +103,7 @@ class Sonnet:
         except AttributeError:
             print("Set the syllable dictionary to use.")
 
-    def IsRegular(self, strict=False):
+    def IsRegular(self, strict=False):  ### Do all possible regularity check.
         sonnetlen = self.stringform
         try:
             isregular_syl = self.IsRegular_syl()

@@ -1,3 +1,4 @@
+from itertools import product, chain
 import numpy as np
 from scipy.special import logsumexp
 import random
@@ -380,10 +381,10 @@ class HiddenMarkovModel:
             current_st = np.random.choice(self.L, p=A_start)    
             while maxsyllensum<10:
                 current_word = np.random.choice(self.D, p=O[current_st,:])
-                length1 = abs(df.iloc[current_word]["length1"])
-                length2 = abs(df.iloc[current_word]["length2"])
-                isend1 = (df.iloc[current_word]["length1"]<0)
-                isend2 = (df.iloc[current_word]["length2"]<0)
+                length1 = abs(df.iloc[current_word, 0])
+                length2 = abs(df.iloc[current_word, 1])
+                isend1 = (df.iloc[current_word, 0]<0)
+                isend2 = (df.iloc[current_word, 1]<0)
                 
                 if minsyllensum + length1>10:
                     pass
@@ -406,6 +407,68 @@ class HiddenMarkovModel:
             sonnet.append(line)
         return sonnet
 
+    def generate_sonnet_with_stress(self, df_syl, df_stress, strict=False, numLines=14):
+        A = (self.A).copy()
+        A_sum = A.sum(axis=1, keepdims=True)
+        A = A/A_sum
+        O = (self.O).copy()
+        O_sum = O.sum(axis=1, keepdims=True)
+        O = O/O_sum
+        A_start = (self.A_start).copy()
+        A_start_sum = np.sum(A_start)
+        A_start = A_start/A_start_sum
+
+        sonnet = []
+        while len(sonnet)<numLines:
+            line = []
+            maxsyllensum = 0
+            minsyllensum = 0
+            current_st = np.random.choice(self.L, p=A_start)    
+            while maxsyllensum<10:
+                current_word = np.random.choice(self.D, p=O[current_st,:])
+                length1 = abs(df_syl.iloc[current_word, 0])
+                length2 = abs(df_syl.iloc[current_word, 1])
+                isend1 = (df_syl.iloc[current_word, 0]<0)
+                isend2 = (df_syl.iloc[current_word, 1]<0)
+                
+                if minsyllensum + length1>10:
+                    pass
+                else:
+                    line.append(df_syl.index[current_word])
+                    if maxsyllensum + max(length1, length2)>=10:
+                        minsyllensum += length1
+                        maxsyllensum += max(length1, length2)
+                    else:
+                        if isend1==True:
+                            minsyllensum += length2
+                            maxsyllensum += length2
+                        elif isend2==True:
+                            minsyllensum += length1
+                            maxsyllensum += length1
+                        else:
+                            minsyllensum += length1
+                            maxsyllensum += max(length1, length2)
+                    current_st = np.random.choice(self.L, p=A[current_st,:])
+            stress = [df_stress.loc[word][0] for word in line]
+            comb = list(product(*stress))
+            isregular = False
+            for x in comb:
+                stressList = list(chain.from_iterable(x))
+                stressChng = [stressList[i]-stressList[i-1] for i in range(1, len(stressList))]
+                isregular_temp = True
+                for i, y in enumerate(stressChng):
+                    if not strict and ((i%2 == 0 and y<0) or (i%2 == 1 and y>0)):
+                        isregular_temp = False
+                        break
+                    elif strict and ((i%2 == 0 and y<=0) or (i%2 == 1 and y>=0)):
+                        isregular_temp = False
+                        break
+                if isregular_temp==True:
+                    isregular = True
+                    break
+            if isregular:
+                sonnet.append(line)
+        return sonnet
 
 def unsupervised_HMM(X, n_states, N_iters, threshold=0.001, verbose=False):
     '''
