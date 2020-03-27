@@ -6,6 +6,7 @@ import random
 class HiddenMarkovModel:
     '''
     Class implementation of Hidden Markov Models.
+    Rewritten using log probabilities.
     '''
 
     def __init__(self, A, O):
@@ -32,9 +33,9 @@ class HiddenMarkovModel:
             
             D:          Number of observations.
             
-            A:          The transition matrix.
+            A, A_log:   The transition matrix.
             
-            O:          The observation matrix.
+            O, O_log:   The observation matrix.
             
             A_start:    Starting transition probabilities. The i^th element
                         is the probability of transitioning from the start
@@ -193,6 +194,10 @@ class HiddenMarkovModel:
                         from 0 to D - 1. In other words, a list of lists.
 
             N_iters:    The number of iterations to train on.
+
+            threshold:  Threshold value determining early stop of learning.
+                        Roughly speaking, the iteration ends when every entries
+                        of A and O are updated by less than the threshold.
         '''
         patience = 2    # Num of epochs to be waited before early stopping criterion applies.
 
@@ -246,73 +251,6 @@ class HiddenMarkovModel:
         self.O = np.exp(self.O_log)
 
 
-    def generate_emission(self, M):
-        '''
-        Generates an emission of length M, assuming that the starting state
-        is chosen uniformly at random. 
-
-        Arguments:
-            M:          Length of the emission to generate.
-
-        Returns:
-            emission:   The randomly generated emission as a list.
-
-            states:     The randomly generated states as a list.
-        '''
-
-        emission = []
-        states = []
-
-        RV_states = [random.random() for _ in range(M)]
-        RV_emission = [random.random() for _ in range(M)]
-
-        A_start_sum = sum(self.A_start)
-        A_sum = [sum(self.A[a]) for a in range(self.L)]
-        O_sum = [sum(self.O[a]) for a in range(self.L)]
-
-        for i in range(M):
-            if i==0:
-                a = 0
-                stopper = True
-                while stopper:
-                    a += 1
-                    if RV_states[i] < (sum(self.A_start[:a]) / A_start_sum):
-                        stopper = False
-                        a -= 1
-                        break
-                states.append(a)
-                w = 0
-                stopper = True
-                while stopper:
-                    w += 1
-                    if RV_emission[i] < (sum(self.O[a][:w]) / O_sum[a]):
-                        stopper = False
-                        w -= 1
-                        break
-                emission.append(w)
-            else:
-                a = 0
-                stopper = True
-                while stopper:
-                    a += 1
-                    if RV_states[i] < (sum(self.A[states[i-1]][:a]) / A_sum[states[i-1]]):
-                        stopper = False
-                        a -= 1
-                        break
-                states.append(a)
-                w = 0
-                stopper = True
-                while stopper:
-                    w += 1
-                    if RV_emission[i] < (sum(self.O[a][:w]) / O_sum[a]):
-                        stopper = False
-                        w -= 1
-                        break
-                emission.append(w)
-
-        return emission, states
-
-
     def probability_alphas(self, x):
         '''
         Finds the maximum probability of a given input sequence using
@@ -337,32 +275,11 @@ class HiddenMarkovModel:
         return prob
 
 
-    def probability_betas(self, x):
-        '''
-        Finds the maximum probability of a given input sequence using
-        the backward algorithm.
-
-        Arguments:
-            x:          Input sequence in the form of a list of length M,
-                        consisting of integers ranging from 0 to D - 1.
-
-        Returns:
-            prob:       Total probability that x can occur.
-        '''
-
-        betas = self.backward(x)
-
-        # beta_j(1) gives the probability that the state sequence starts
-        # with j. Summing this, multiplied by the starting transition
-        # probability and the observation probability, over all states
-        # gives the total probability of x paired with any state
-        # sequence, i.e. the probability of x.
-        prob = sum([betas[1][j] * self.A_start[j] * self.O[j][x[0]] \
-                    for j in range(self.L)])
-
-        return prob
-
     def generate_sonnet(self, df, numLines=14):
+        '''
+        Generates a sonnet, assuming each lines have 10 syllables.
+        The syllable dictionary must be reindexed using the observation index.
+        '''
         A = (self.A).copy()
         A_sum = A.sum(axis=1, keepdims=True)
         A = A/A_sum
@@ -408,6 +325,10 @@ class HiddenMarkovModel:
         return sonnet
 
     def generate_sonnet_with_stress(self, df_syl, df_stress, strict=False, numLines=14):
+        '''
+        Generates a sonnet, assuming each lines have 10 syllables and follow iambic pentameter.
+        The syllable and stress dictionaries must be reindexed using the observation index.
+        '''
         A = (self.A).copy()
         A_sum = A.sum(axis=1, keepdims=True)
         A = A/A_sum
@@ -496,10 +417,12 @@ def unsupervised_HMM(X, n_states, N_iters, threshold=0.001, verbose=False):
     L = n_states
     D = len(observations)
 
+    # Keep the reindexing table for emission.
     obs_idx = {}
     for i, obs in enumerate(list(observations)):
         obs_idx[obs] = i
- 
+
+    # Reindex the training dataset from 0 to D-1.
     X_reidxd = []
     for x in X:
         x_reidxd = []
@@ -530,6 +453,10 @@ def unsupervised_HMM(X, n_states, N_iters, threshold=0.001, verbose=False):
     return HMM, obs_idx
 
 def unsupervised_HMM_CV(X, n_states, N_iters, threshold=0.001, n_folds=5, verbose=False):
+    '''
+    Unsupervised HMM with k-fold cross validation.
+    Assess the trained model in terms of the log likelihood on the validation set.
+    '''
     # Make a set of observations.
     observations = set()
     for x in X:
@@ -539,10 +466,12 @@ def unsupervised_HMM_CV(X, n_states, N_iters, threshold=0.001, n_folds=5, verbos
     L = n_states
     D = len(observations)
 
+    # Keep the reindexing table for emission.
     obs_idx = {}
     for i, obs in enumerate(list(observations)):
         obs_idx[obs] = i
- 
+
+    # Reindex the training dataset from 0 to D-1. 
     X_reidxd = []
     for x in X:
         x_reidxd = []

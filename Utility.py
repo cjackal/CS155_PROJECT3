@@ -85,7 +85,7 @@ def SonnetLoader(path):
 def DictLoader(path, sep='@'):
     if path[0]!='.':
         path = './models/' + path + '.csv'
-    df = pd.read_csv('test.csv', sep=sep, index_col=0)
+    df = pd.read_csv(path, sep=sep, index_col=0)
     if df.columns[0]=='stress':
         for i in range(len(df)):
             df.iloc[i, 0] = eval(df.iloc[i, 0])

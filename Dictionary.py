@@ -152,10 +152,12 @@ def sylAndStr_nltk(wordList, dict_syl=[]):
             
     #df = pd.DataFrame(list(zip(wordList_list, syl_num, stressList)), columns =['word', 'syl_num', 'stress']) 
     
-    df_syl = pd.DataFrame(list(zip(wordList_list, length1, length2)), columns=['word', 'length1', 'length2']) 
+    df_syl = pd.DataFrame(list(zip(wordList_list, length1, length2)), columns=['word', 'length1', 'length2'])
     df_syl.set_index("word", inplace=True)
+    df_syl = df_syl[~df_syl.index.duplicated(keep='last')]
     
     df_stress = pd.DataFrame(list(zip(wordList_list, stressList)), columns=['word', 'stress']) 
     df_stress.set_index("word", inplace=True)
+    df_stress = df_stress[~df_stress.index.duplicated(keep='last')]
     
     return df_syl, df_stress
