@@ -238,20 +238,6 @@ class Sonnet:
             
         return isregular
     
-    def IsRegular_stress(self, strict=False, verbose=False):
-        """
-        Check if the given sonnet is in regular (pentameter) form.
-        Must set the syllable dictionary beforehand.
-        The input "strict" decides whether stress should strictly follow iambic pentameter (i.e. stress from nltk should strictly follow 0, 1, 0, 1, ...)
-        or it can have some syllables with same stress in a row
-        (i.e. 1, 1, 1, ... for a few words. c.f. Shall I compare thee ... also falls into this category, because "shall" has a primary stress)
-        """
-        try:
-            df = self.dict_stress
-            regularity = 0
-            for _, line in enumerate(self.indexform):
-                stress = [df.iloc[word, 0] for word in line]
-                comb = list(product(*stress))
 
     def IsRegular_stress(self, strict=False, verbose=False):
         """
@@ -359,7 +345,7 @@ class Sonnet:
             s |= set(line)
         return s
     
-    def returnRhymePair(self):
+    def RhymePair(self):
         pair = []
         paring = [[0,2],[1,3],[4,6],[5,7],[8,10],[9,11],[12,13]]
         for couple in paring:
