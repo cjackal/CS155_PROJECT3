@@ -52,7 +52,7 @@ class LSTM_char:
             for i in range(len(numIdx)):
                 if i == len(numIdx)-1:
                     self.sonnets.append(self.txt[numIdx[i]+2:])
-                else:
+                elif numIdx[i+1]-numIdx[i] != 1:
                     self.sonnets.append(self.txt[numIdx[i]+2:numIdx[i+1]-1])
         f.close()
     

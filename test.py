@@ -159,35 +159,54 @@ from LSTMforSonnet import LSTM_word
 
 
 # Look into perplexity - with characters
-from LSTMforSonnet import LSTM_char, LSTM_word
-from keras.models import Sequential
-from keras.layers import Dense
-import numpy as np
+#from LSTMforSonnet import LSTM_char, LSTM_word
+#from keras.models import Sequential
+#from keras.layers import Dense
+#import numpy as np
+#
+#stepList = [1, 2, 3, 4, 5, 6, 8]
+#stepList = [1]
+#patienceList = [5]
+#perplexity = np.zeros((len(stepList), len(patienceList)))
+#accuracy = np.zeros((len(stepList), len(patienceList)))
+#
+#for i, step in enumerate(stepList):
+#    for j, patience in enumerate(patienceList):
+#        maxEpoch = '_maxEpoch400'   
+#            # when step==1, maxEpoch was 200, because it stopped before reaching 200 due to early stopping;
+#            # otherwise, it finished between 200 and 400 epochs, so maxEpoch was set to 400
+#        modelName = "model_step%d_patience%d%s_char.h5" % (step, patience, maxEpoch)
+#        print(modelName)
+#        mappingName = "model_step%d_patience%d%s_char.pkl" % (step, patience, maxEpoch)
+#        test2 = LSTM_char(step = 4) # for the purpose of testing; therefore, it is different from the settings used in each model
+#        test2.SonnetLoader('shakespeare')
+#        test2.getTrainSeq()
+#        test2.getMapping()
+#        test2.LoadModel(modelName = modelName, mappingName = mappingName)
+#        test2.model.summary()
+#        
+#        test2.Predict("shall i compare thee to a summer's day?\n", outputText_len=300, temperature = 1)
+#        
+#        [perplexity[j, i], accuracy[j, i]] = test2.perplexity_train()
+#        print("step ", step, "patience", patience)
+#        print(perplexity[j, i])
+#        print(accuracy[j, i])
 
-stepList = [1, 2, 3, 4, 5, 6, 8]
-stepList = [1]
-patienceList = [5]
-perplexity = np.zeros((len(stepList), len(patienceList)))
-accuracy = np.zeros((len(stepList), len(patienceList)))
+from Sonnet import Sonnet, Sonnets
+import Utility
+import Dictionary
 
-for i, step in enumerate(stepList):
-    for j, patience in enumerate(patienceList):
-        maxEpoch = '_maxEpoch400'   
-            # when step==1, maxEpoch was 200, because it stopped before reaching 200 due to early stopping;
-            # otherwise, it finished between 200 and 400 epochs, so maxEpoch was set to 400
-        modelName = "model_step%d_patience%d%s_char.h5" % (step, patience, maxEpoch)
-        print(modelName)
-        mappingName = "model_step%d_patience%d%s_char.pkl" % (step, patience, maxEpoch)
-        test2 = LSTM_char(step = 4) # for the purpose of testing; therefore, it is different from the settings used in each model
-        test2.SonnetLoader('shakespeare')
-        test2.getTrainSeq()
-        test2.getMapping()
-        test2.LoadModel(modelName = modelName, mappingName = mappingName)
-        test2.model.summary()
-        
-        test2.Predict("shall i compare thee to a summer's day?\n", outputText_len=300, temperature = 1)
-        
-        [perplexity[j, i], accuracy[j, i]] = test2.perplexity_train()
-        print("step ", step, "patience", patience)
-        print(perplexity[j, i])
-        print(accuracy[j, i])
+#a = Utility.SonnetLoader("test")
+a = Utility.SonnetLoader("shakespeare")
+print(a)
+
+#print(len(sonnet_all_sh.dict))
+
+
+syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
+a[0].SetDict(syl_dict)
+df = Dictionary.sylAndStr_nltk(a[0].returnWordList())
+a[0].SetDict_stress(df)
+print(a[0].IsRegular())
+#print(a[0].dict_syl)
+#print(a[0].dict_syl.index.equals(a[0].dict_syl.index))

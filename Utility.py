@@ -5,7 +5,12 @@ Created on Wed Mar 11 15:15:31 2020
 @author: HyeongChan Jo
 """
 
+'''
+Utility for Sonnet analysis
+'''
+
 import re
+import pandas as pd
 from Sonnet import Sonnet
 
 def parse_observations(text):
@@ -34,7 +39,7 @@ def parse_observations(text):
 
     return obs, obs_map
 
-def SonnetLoader(path, syl_dict=[]):
+def SonnetLoader(path):
     """
     Load sonnets from txt, return a list consisting of one sonnet per element.
     Each sonnet consists of a list of lines in the sonnet, which is again a list of words in the line.
@@ -50,7 +55,7 @@ def SonnetLoader(path, syl_dict=[]):
         txt = f.read()
         lines = txt.split('\n')
         for i in range(len(lines)):
-            lines[i] = re.sub("^\s+", '', lines[i]).lower()
+            lines[i] = re.sub(r"^\s+", '', lines[i]).lower()
         beginning = 0
         sonnet_is_read = False
         i = 0
@@ -69,10 +74,40 @@ def SonnetLoader(path, syl_dict=[]):
     for sonnet in sonnets:
         for i in range(len(sonnet)):
             sonnet[i] = re.sub(r"[^-'\w\s]", '', sonnet[i]).split()
-            #sonnet[i] = re.sub(r"s'$", "s", sonnet[i])
+            # line = []
+            # for word in sonnet[i]:
+            #     line.append(re.sub(r"s'$", "s", word))
+            # sonnet[i] = line
 
     #print(sonnets)
-    if len(syl_dict)==0:
-        return [Sonnet(sonnet) for sonnet in sonnets]
-    else:
-        return [Sonnet(sonnet, syl_dict) for sonnet in sonnets]
+    return [Sonnet(sonnet) for sonnet in sonnets]
+
+def DictLoader(path, sep='@'):
+    if path[0]!='.':
+        path = './models/' + path + '.csv'
+    df = pd.read_csv(path, sep=sep, index_col=0)
+    if df.columns[0]=='stress':
+        for i in range(len(df)):
+            df.iloc[i, 0] = eval(df.iloc[i, 0])
+    return df
+
+def Roman_Decimal(s):
+    roman = 0
+    i = 0
+
+    value = {'I':1, 'V':5, 'X':10, 'L':50, 'C':100}
+    
+    while i < len(s):     
+        s1 = value[s[i]] 
+        if i+1 < len(s): 
+            s2 = value[s[i+1]] 
+            if s1 >= s2: 
+                roman += s1 
+                i += 1
+            else: 
+                roman += s2 - s1 
+                i += 2
+        else: 
+            roman += s1 
+            i += 1
+    return roman
