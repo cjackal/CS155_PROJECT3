@@ -7,6 +7,7 @@ Created on Wed Mar 11 15:08:52 2020
 
 import re
 from itertools import product, chain
+import Utility
 
 ## Master class 'sonnet'
 
@@ -102,6 +103,35 @@ class Sonnet:
 
         except AttributeError:
             print("Set the syllable dictionary to use.")
+
+    def Word_to_Index_line(self, line, removeApo=True):
+        try:
+            word_to_idx = []
+            unmatched = []
+            for _, word in enumerate(line):
+                idx = self.index_map.get(word)
+                if isinstance(idx, int):
+                    word_to_idx.append(idx)
+                else:
+                    if removeApo:
+                        if isinstance(self.index_map.get(re.sub(r"'$", "", word)), int):
+                            word_to_idx.append(self.index_map.get(re.sub(r"'$", "", word)))
+                        elif isinstance(self.index_map.get(re.sub(r"^'", "", word)), int):
+                            word_to_idx.append(self.index_map.get(re.sub(r"^'", "", word)))
+                        elif isinstance(self.index_map.get(re.sub(r"'$", "", re.sub(r"^'", "", word))), int):
+                            word_to_idx.append(self.index_map.get(re.sub(r"'$", "", re.sub(r"^'", "", word))))
+                        else:
+                            unmatched.append(word)
+                    else:
+                        unmatched.append(word)
+            if len(unmatched)!=0:
+                print(unmatched)
+                raise KeyError
+            return word_to_idx    ### sonnet with words replaced with the corresponding idx
+
+        except AttributeError:
+            print("Set the syllable dictionary to use.")
+
 
     def IsRegular(self, strict=False):  ### Do all possible regularity check.
         sonnetlen = len(self.stringform)
@@ -201,6 +231,66 @@ class Sonnet:
         except AttributeError:
             print("Set the stress dictionary to use.")
 
+    def IsRegular_syl_line(self, line):
+        try:
+            df = self.dict_syl
+            line_index = self.Word_to_Index_line(line)
+            syllable_counter_min = 0
+            syllable_counter_max = 0
+            for i, word in enumerate(line_index):
+                if i<len(line_index)-1:
+                    if df.iloc[word, 1]==0:
+                        syllable_counter_max += df.iloc[word, 0]
+                        syllable_counter_min += df.iloc[word, 0]
+                    else:
+                        if df.iloc[word, 0]<0:
+                            syllable_counter_max += df.iloc[word, 1]
+                            syllable_counter_min += df.iloc[word, 1]
+                        elif df.iloc[word, 1]<0:
+                            syllable_counter_max += df.iloc[word, 0]
+                            syllable_counter_min += df.iloc[word, 0]
+                        else:
+                            syllable_counter_max += df.iloc[word, 1]
+                            syllable_counter_min += df.iloc[word, 0]
+                else:
+                    if df.iloc[word, 1]==0:
+                        syllable_counter_max += df.iloc[word, 0]
+                        syllable_counter_min += df.iloc[word, 0]
+                    else:
+                        syllable_counter_max += abs(df.iloc[word, 1])
+                        syllable_counter_min += abs(df.iloc[word, 0])
+            return (syllable_counter_min <= 10 <= syllable_counter_max)
+
+        except AttributeError:
+            print("Set the syllable dictionary to use.")
+
+    def IsRegular_stress_line(self, line, strict=False, verbose=False):
+        try:
+            df = self.dict_stress
+            line_index = self.Word_to_Index_line(line)
+            stress = [df.iloc[word, 0] for word in line_index]
+            comb = list(product(*stress))
+
+            isregular = False
+            for x in comb:
+                stressList = list(chain.from_iterable(x))
+                stressChng = [stressList[i]-stressList[i-1] for i in range(1, len(stressList))]
+                isregular_temp = True
+                for i, y in enumerate(stressChng):
+                    if not strict and ((i%2 == 0 and y<0) or (i%2 == 1 and y>0)):
+                        isregular_temp = False
+                        break
+                    elif strict and ((i%2 == 0 and y<=0) or (i%2 == 1 and y>=0)):
+                        isregular_temp = False
+                        break
+                if isregular_temp==True:
+                    isregular = True
+                    break
+            return isregular
+
+        except AttributeError:
+            print("Set the stress dictionary to use.")
+
     def WordList(self):
         s = set()
         for line in self.stringform:
@@ -214,3 +304,27 @@ class Sonnet:
             i, j = couple
             pair.append({self.stringform[i][-1], self.stringform[j][-1]})
         return pair
+
+## class 'sonnets' for saving data about multiple sonnets
+class Sonnets(Sonnet):
+    def __init__(self, sonnetList):
+        self.sonnetList = sonnetList
+        self.is_ending = [eachSonnet.is_ending for eachSonnet in sonnetList]
+        try:
+            self.dict_syl = sonnetList[0].dict_syl
+            self.dict_stress = sonnetList[0].dict_stress
+            self.word_to_indexList = [eachSonnet.indexform for eachSonnet in sonnetList]
+        except AttributeError:
+            self.dict_syl = Utility.DictLoader('dict_shakespeare_syl')
+            self.dict_stress = Utility.DictLoader('dict_shakespeare_stress')
+            for sonnet in self.sonnetList:
+                sonnet.SetDict(self.dict_syl)
+                sonnet.SetDict_stress(self.dict_stress)
+            
+        self.WordList = set()
+        for sonnet in self.sonnetList:
+            self.WordList |= set(sonnet.WordList())
+        
+        self.RhymePair = []
+        for sonnet in self.sonnetList:
+            self.RhymePair.append(sonnet.RhymePair())
