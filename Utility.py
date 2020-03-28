@@ -78,11 +78,10 @@ def SonnetLoader(path, syl_dict=[]):
             # for word in sonnet[i]:
             #     line.append(re.sub(r"s'$", "s", word))
             # sonnet[i] = line
-
     if len(syl_dict)==0:
         return [Sonnet(sonnet) for sonnet in sonnets]
     else:
-        sonnetList = [Sonnet(sonnet for sonnet in sonnets)]
+        sonnetList = [Sonnet(sonnet) for sonnet in sonnets]
         for sonnet in sonnetList:
             sonnet.SetDict(syl_dict)
         return sonnetList

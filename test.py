@@ -192,21 +192,24 @@ from LSTMforSonnet import LSTM_word
 #        print(perplexity[j, i])
 #        print(accuracy[j, i])
 
-from Sonnet import Sonnet, Sonnets
-import Utility
+from LSTMforSonnet import LSTM_char, LSTM_word
+from keras.models import Sequential
+from keras.layers import Dense
 import Dictionary
 
-#a = Utility.SonnetLoader("test")
-a = Utility.SonnetLoader("shakespeare")
-print(a)
-
-#print(len(sonnet_all_sh.dict))
-
-
-syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
-a[0].SetDict(syl_dict)
-df = Dictionary.sylAndStr_nltk(a[0].returnWordList())
-a[0].SetDict_stress(df)
-print(a[0].IsRegular())
-#print(a[0].dict_syl)
-#print(a[0].dict_syl.index.equals(a[0].dict_syl.index))
+embedSize = [5, 10, 25]
+for dim in embedSize:
+#     modelName = "model_Spenser_withWordEmbedding %d.h5" % dim
+#     mappingName = "model_Spenser_mapping_withWordEmbedding %d.pk1" % dim
+    modelName = "model_unit400_withWordEmbedding %d.h5" % dim
+    mappingName = "model_unit400_mapping_withWordEmbedding %d.pk1" % dim
+    test2 = LSTM_word()
+    dic = Dictionary.syl_predef()
+    #test2.SonnetLoader('Spenser_v2')
+    test2.SonnetLoader('shakespeare')
+    test2.getTrainSeq()
+    test2.getMapping()
+    test2.LoadModel(modelName = modelName, mappingName = mappingName)
+    [perplexity, accuracy] = test2.perplexity_train(useWordEmbedding=True)
+    print(perplexity)
+    print(accuracy)

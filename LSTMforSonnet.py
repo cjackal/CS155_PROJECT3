@@ -167,33 +167,46 @@ class LSTM_word(LSTM_char):
             syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
             a = Utility.SonnetLoader(path, syl_dict)
         elif isinstance(path, list) and len(path)>1:
+            df = Utility.DictLoader('dict_both_syl')
+            df2 = Utility.DictLoader('dict_both_stress')
             a = [Utility.SonnetLoader(x) for x in path]
             a = list(chain.from_iterable(a))
+            for temp in a:
+                temp.SetDict(df)
+                temp.SetDict_stress(df2)
+        elif path == 'spenser':
+            df = Utility.DictLoader('dict_spenser_syl') # load predefined syllable dictionary
+            df2 = Utility.DictLoader('dict_spenser_stress')
+            a = Utility.SonnetLoader(path)
+            for temp in a:
+                temp.SetDict(df)
+                temp.SetDict_stress(df2)
         else:
             a = Utility.SonnetLoader(path)
-        
 #        if len([x for x in path if x=='shakespeare'])!=0:
 #            syl_dict = Dictionary.syl_predef()  # load predefined syllable dictionary
 #            self.sonnets = Sonnets(a, syl_dict)
 #        else: 
 #            self.sonnets = Sonnets(a)
         self.sonnets = Sonnets(a)
+        
     
     def getTrainSeq(self):
+        self.mapping = self.sonnets.sonnetList[0].index_map
+        self.mapping['\n'] = len(self.mapping)
         for sonnet in self.sonnets.sonnetList:
             sonnet_concat = []
-            for line in sonnet.stringform:
+            for line in sonnet.indexform:
                 sonnet_concat = sonnet_concat+line
-                sonnet_concat = sonnet_concat+['\n']    # line change is also predicted
+                sonnet_concat = sonnet_concat+[len(self.mapping)-1]    # line change is also predicted
             for i in range(self.seqLen, len(sonnet_concat), self.step):
                 self.trainSeq.append(sonnet_concat[i-self.seqLen:i+1])
         
     def getMapping(self):
-        self.mapping = self.sonnets.sonnetList[0].index_map
-        self.mapping['\n'] = len(self.mapping)
-        for seq in self.trainSeq:
-            self.trainSeq_encoded.append([self.mapping[word] for word in seq])
-        self.trainSeq_encoded = np.array(self.trainSeq_encoded)
+#        for seq in self.trainSeq:
+#            self.trainSeq_encoded.append([self.mapping[word] for word in seq])
+#        self.trainSeq_encoded = np.array(self.trainSeq_encoded)
+        self.trainSeq_encoded = np.array(self.trainSeq)
         self.voca_size = len(self.mapping)
         self.X_orig, self.y= self.trainSeq_encoded[:, :-1], self.trainSeq_encoded[:, -1]
         self.X = np.array([utils.to_categorical(x, num_classes=self.voca_size) for x in self.X_orig])
