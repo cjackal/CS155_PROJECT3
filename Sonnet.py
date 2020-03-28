@@ -4,13 +4,18 @@ Created on Wed Mar 11 15:08:52 2020
 
 @author: HyeongChan Jo, Juhyun Kim
 """
+import re
+from itertools import product
+from itertools import chain
+import numpy as np
+import Dictionary
+import Utility
+import pandas as pd
 
 import re
 from itertools import product, chain
-import Utility
 
 ## Master class 'sonnet'
-
 class Sonnet:
 #    Attributes:
 #            stringform: list of strings. sonnet as a list of words
@@ -146,7 +151,7 @@ class Sonnet:
             isregular_stress = True
             print("No stress dictionary assigned.")
         return (sonnetlen==14 and isregular_syl and isregular_stress)
-
+        
     def IsRegular_syl(self, verbose=False):
         """
         Check if the given sonnet is in regular (pentameter) form.
@@ -263,7 +268,43 @@ class Sonnet:
 
         except AttributeError:
             print("Set the syllable dictionary to use.")
-
+            
+    def IsRegular_line(self, line):
+        """
+        Check if the given line is in regular (pentameter) form: 
+        Must set the syllable dictionary beforehand.
+        """
+        df = self.dict_syl
+        syllable_counter_min = 0
+        syllable_counter_max = 0
+        isregular = False
+        for i in range(len(line)):
+            if i<len(line)-1:
+                if df.loc[line[i]][1]==0:
+                    syllable_counter_max += df.loc[line[i]][0]
+                    syllable_counter_min += df.loc[line[i]][0]
+                else:
+                    if df.loc[line[i]][0]<0:
+                        syllable_counter_max += df.loc[line[i]][1]
+                        syllable_counter_min += df.loc[line[i]][1]
+                    elif df.loc[line[i]][1]<0:
+                        syllable_counter_max += df.loc[line[i]][0]
+                        syllable_counter_min += df.loc[line[i]][0]
+                    else:
+                        syllable_counter_max += df.loc[line[i]][1]
+                        syllable_counter_min += df.loc[line[i]][0]
+            else:
+                if df.loc[line[i]][1]==0:
+                    syllable_counter_max += df.loc[line[i]][0]
+                    syllable_counter_min += df.loc[line[i]][0]
+                else:
+                    syllable_counter_max += abs(df.loc[line[i]][1])
+                    syllable_counter_min += abs(df.loc[line[i]][0])
+        if syllable_counter_min <= 10 <= syllable_counter_max:
+            isregular = True
+            
+        return isregular
+    
     def IsRegular_stress_line(self, line, strict=False, verbose=False):
         try:
             df = self.dict_stress
@@ -297,12 +338,13 @@ class Sonnet:
             s |= set(line)
         return s
     
-    def RhymePair(self):
+    def returnRhymePair(self):
         pair = []
         paring = [[0,2],[1,3],[4,6],[5,7],[8,10],[9,11],[12,13]]
         for couple in paring:
             i, j = couple
-            pair.append({self.stringform[i][-1], self.stringform[j][-1]})
+            if j<len(self.stringform):
+                pair.append({self.stringform[i][-1], self.stringform[j][-1]})
         return pair
 
 ## class 'sonnets' for saving data about multiple sonnets
