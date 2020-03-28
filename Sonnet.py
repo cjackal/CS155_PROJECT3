@@ -57,6 +57,8 @@ class Sonnet:
     def SetDict(self, df, removeApo=True):  ### Set the syllable dictionary.
         self.dict = df                  ### Temporary format: rows indexed by the words, with two columns of possible syllables
         idxmap = {}
+        #import pdb; pdb.set_trace()
+        
         for i, s in enumerate(self.dict.index.to_numpy()):
             idxmap[s] = i
         self.index_map = idxmap         ### {key:value}={word:idx}
@@ -256,6 +258,8 @@ class Sonnets(Sonnet):
                 sonnet.SetDict(predefinedDict)
         else:
             self.SetDict_new()
+            for sonnet in self.sonnetList:
+                sonnet.SetDict(self.dict)
             
         if len(self.dict_stress)==0:
             self.SetDict_stress()
