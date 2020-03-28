@@ -134,7 +134,6 @@ class LSTM_char:
         model_predict.set_weights(self.model.get_weights())
         
         model_predict.summary()
-        import pdb; pdb.set_trace()
         result = model_predict.evaluate(self.X, self.y)
         print(result)
         
