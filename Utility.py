@@ -39,7 +39,7 @@ def parse_observations(text):
 
     return obs, obs_map
 
-def SonnetLoader(path):
+def SonnetLoader(path, syl_dict=[]):
     """
     Load sonnets from txt, return a list consisting of one sonnet per element.
     Each sonnet consists of a list of lines in the sonnet, which is again a list of words in the line.
@@ -79,8 +79,13 @@ def SonnetLoader(path):
             #     line.append(re.sub(r"s'$", "s", word))
             # sonnet[i] = line
 
-    #print(sonnets)
-    return [Sonnet(sonnet) for sonnet in sonnets]
+    if len(syl_dict)==0:
+        return [Sonnet(sonnet) for sonnet in sonnets]
+    else:
+        sonnetList = [Sonnet(sonnet for sonnet in sonnets)]
+        for sonnet in sonnetList:
+            sonnet.SetDict(syl_dict)
+        return sonnetList
 
 def DictLoader(path, sep='@'):
     if path[0]!='.':
