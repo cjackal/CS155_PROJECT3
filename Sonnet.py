@@ -104,7 +104,7 @@ class Sonnet:
             print("Set the syllable dictionary to use.")
 
     def IsRegular(self, strict=False):  ### Do all possible regularity check.
-        sonnetlen = self.stringform
+        sonnetlen = len(self.stringform)
         try:
             isregular_syl = self.IsRegular_syl()
         except:
